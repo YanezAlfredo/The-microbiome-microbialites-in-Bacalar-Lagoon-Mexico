@@ -1,0 +1,324 @@
+title: "The microbiome of modern microbialites in Bacalar Lagoon, Mexico"
+
+==========================================================================================================================
+#Libraries
+#Define packages
+## CRAN repository
+cran_packages <- c("bookdown", "knitr", "tidyverse", "plyr", "grid", "gridExtra", "kableExtra", "xtable", "ggpubr")
+## Bioconductor repository
+bioc_packages <- c("phyloseq", "dada2", "DECIPHER", "phangorn", "ggpubr", "BiocManager", "DESeq2", "microbiome", "philr")
+## GitHub repository
+git_source <- c("twbattaglia/btools", "gmteunisse/Fantaxtic", "MadsAlbertsen/ampvis2", "opisthokonta/tsnemicrobiota")
+# source/package name
+git_packages <- c("btools", "fantaxtic", "ampvis2", "tsnemicrobiota") # package name
+
+
+======================================================
+# install the defined packages
+# Install CRAN packages
+.inst <- cran_packages %in% installed.packages()
+if(any(!.inst)) {
+  install.packages(cran_packages[!.inst])
+}
+# Install BioConductor packages
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+.inst <- bioc_packages %in% installed.packages()
+if(any(!.inst)) {
+  BiocManager::install(bioc_packages[!.inst])
+}
+# Install GitHub packages
+.inst <- git_source %in% installed.packages()
+if(any(!.inst)) {
+  devtools::install_github(git_source[!.inst])
+}
+========================================================
+#Cargar paquetes
+sapply(c(cran_packages, bioc_packages, git_packages), require, character.only = TRUE)
+
+#library(readxl)
+#library(ggplot2)
+#library(vegan)
+#library(adespatial)
+#library(adegraphics)
+===========================================================================================================================
+#Fig. 2 Spatial ordination (PCA) of environmental variables associated to microbialite sampling sites in Bacalar lagoon.
+
+# Principal component analysis
+library("FactoMineR")
+library("factoextra")
+
+#Archive .txt
+Bacalar_enviromental.txt
+
+# log transform 
+log.Bacalar_enviromental <- log(Bacalar_enviromental[, 1:8])
+# apply PCA - scale. = TRUE is highly 
+Bacalar_enviromental.pca <- prcomp(log.Bacalar_enviromental,  center= TRUE, scale = TRUE)
+# visualization_Summary method
+# visualization_Method
+Bacalar_enviromental.pca
+# plot method
+plot(Bacalar_enviromental.pca, type = "l")
+# Graph of individuals
+fviz_pca_ind(Bacalar_enviromental.pca, col.ind = "black",repel = F)
+
+#Exploration_Contributions "contrib"
+BACALAR_PCA.var <- fviz_pca_var(Bacalar_enviromental.pca, col.var = "contrib", geom.ind =  "text",
+             gradient.cols = c("white", "blue", "red"),
+             ggtheme = theme_minimal())
+BACALAR_PCA.var
+# Predict PCs
+predict(Bacalar_enviromental.pca, newdata=tail(log.Bacalar_enviromental , 15))
+#PLOT
+#PLOT
+fviz_pca_biplot(Bacalar_enviromental.pca, select.ind =list(cos2 = 15),
+                geom.ind =  "text",
+                habillage=Bacalar_enviromental$Zone, 
+                ggtheme = theme_classic())
+
+
+====================================================================================================================
+#Archive Phyloseq Bacalar.
+
+Bacalar <- phyloseq (OTU, TAX, samples, rooteBac)
+> Bacalar
+
+#Remover Mitochondria- Chloroplast-Unassigned
+> Bacalar <- Bacalar %>%
+    subset_taxa(
+    Kingdom != "Unassigned" &
+    Family  != "Mitochondria"&
+    Class   != "Chloroplast")
+> Bacalar
+
+#Remover Mitochondria- Chloroplast- Archaea- Unassigned
+Bacalar_Bacteria <- Bacalar %>%
+  subset_taxa(Kingdom  != "Archaea" &
+                         Kingdom != "Unassigned" &
+                         Family  != "Mitochondria"&
+                          Class  != "Chloroplast")
+
+Bacalar_Bacteria
+#Remover Mitochondria-Chloroplast-Bacteria-Unassigned
+Bacalar_Archaea <- Bacalar %>%
+  subset_taxa(
+      Kingdom != "Bacteria" &
+      Kingdom != "Unassigned" &
+      Family  != "Mitochondria" &
+      Class   != "Chloroplast")
+Bacalar_Archaea
+
+======================================================================================================================= 
+# Figure 3 Microbialite bacterial genetic composition (16S rDNA V4) at the phylum.
+ 
+theme_set(theme_bw())
+Bacalar_Bacteria
+
+sample_sum_df <- data.frame(sum = sample_sums(Bacalar_Bacteria))
+# To obtain at Phylum level samples that represent more than 2%
+Bacalar_Bacteria_phylum <- Bacalar_Bacteria%>%
+  tax_glom(taxrank = "Phylum") %>%                                     # agglomerate at phylum level
+  transform_sample_counts(function(x) {x/sum(x)} ) %>% # Transform to rel. abundance
+  psmelt() %>%                                                         # Melt to long format
+  filter(Abundance > 0.02) %>%                                         # Filter out low abundance taxa
+  arrange(Phylum)                                                      # Sort data frame alphabetically by phylum
+
+# Set colors for plotting
+phylum_colors <- c("tan","purple","red","#009E73","green",  "#5E738F",
+                   "red4","blue","black","yellow","#619CFF","maroon4")
+
+# Plot 1
+P<- ggplot(Bacalar_Bacteria_phylum, aes(x = Key, y = Abundance, fill = Phylum)) + 
+  geom_bar(stat = "identity",position = "Fill") +  
+  scale_fill_manual(values = phylum_colors) +
+  theme(axis.title.x = element_blank()) + 
+  guides(fill = guide_legend(reverse = FALSE, keywidth = 1, keyheight = 1)) +
+  ylab("Relative Abundance (Phyla > 2%)") 
+  
+===============================================================================================================================
+#Figure S2 Class Composition of Bacalar lagoon Archaea Communities
+  
+theme_set(theme_bw())
+Bacalar_Archaea
+sample_sum_df <- data.frame(sum = sample_sums(Bac_Archaea))
+# melt to long format (for ggploting) 
+# prune out phyla below 2% in each sample
+
+BacalarArchaeaClass <- Bacalar_Archaea %>%
+  tax_glom(taxrank = "Class") %>%                     # agglomerate at phylum level
+  transform_sample_counts(function(x) {x/sum(x)} ) %>% # Transform to rel. abundance
+  psmelt() %>%                                         # Melt to long format
+  filter(Abundance > 0.02) %>%                         # Filter out low abundance taxa
+  arrange(Class)                                      # Sort data frame alphabetically by phylum
+# Set colors for plotting
+
+phylum_colors <- c( "turquoise3", "snow3" , "tomato","palegreen",  "maroon4","salmon", "blue","#CBD588", "limegreen", "yellow")
+# Plot Bacalar_Archaea Class
+
+P<- ggplot(BacalarArchaeaClass, aes(x = Key, y = Abundance, fill = Class)) + 
+       geom_bar(stat = "identity",position = "Fill") +  
+       scale_fill_manual(values = phylum_colors) +
+       theme(axis.title.x = element_blank()) + 
+       guides(fill = guide_legend(reverse = FALSE, keywidth = 1, keyheight = 1)) +
+       ylab("Relative Abundance (Phyla > 2%)") 
+===================================================================================================================================
+###Figure  S3  Beta Diversity Ordenation PCoA unifrac
+Bacalar <- Bacalar %>%	
+  subset_taxa(
+    Kingdom != "Unassigned" &
+      Family  != "Mitochondria"&
+      Class   != "Chloroplast")
+> Bacalar
+ord_unifrac    <- ordinate(Bacalar, method = "PCoA", distance = "wunifrac") 
+ord_unifrac_un <- ordinate(Bacalar, method = "PCoA", distance = "unifrac")   
+#Plot ordinations
+a <- plot_ordination(Bacalar, ord_unifrac, color = "DESCRIPTION") + geom_point(size = 2) +theme_classic()
+b <- plot_ordination(Bacalar, ord_unifrac_un, color = "DESCRIPTION") + geom_point(size = 2) + theme_classic()
+d<-cowplot::plot_grid(a, b, nrow = 1, ncol = 2, scale = .9, labels = c("Weighted", "Unweighted")) 
+=====================================================================================================================================
+#Figure 4 CAP -Canonical Analysis of Principal Coordinates (CAP) and PERMANOVA
+
+#Archive Phyloseq: Bacalar
+Bacalar <- Bacalar %>%	
+  subset_taxa(
+    Kingdom != "Unassigned" &
+      Family  != "Mitochondria"&
+      Class   != "Chloroplast")
+> Bacalar
+Bacalar_wunifrac<- phyloseq::distance(physeq = Bacalar, method = "unifrac", weighted=TRUE)
+# CAP ordinate
+cap_ord <- ordinate(physeq = Bacalar, method = "CAP", distance = Bacalar_wunifrac,
+                    formula = ~ Bicarbonate + Ammonium + Conductivity + SRSi + SRP + Sulfate + NOx + Calcium)
+# CAP plot
+cap_plot <- plot_ordination(
+  physeq = Bacalar, ordination = cap_ord,color = "DESCRIPTION",axes = c(1,2)) + aes(shape = DESCRIPTION)+
+geom_point(aes(colour = DESCRIPTION), alpha = 0.4, size = 4) +geom_point(colour = "grey90", size = 1.5) +
+scale_color_manual(values = c("red", "green", "#00B0F6")  )
+
+# Now add the environmental variables as arrows
+arrowmat <- vegan::scores(cap_ord, display = "bp")
+# Add labels, make a data.frame
+arrowdf <- data.frame(labels = rownames(arrowmat), arrowmat)
+# Define the arrow aesthetic mapping
+arrow_map <- aes  (xend = CAP1, yend = CAP2,x = 0,y = 0,shape = NULL,color = NULL,label = labels)
+label_map <-   aes  (x = 1.05* CAP1, y = 1.15 * CAP2,shape = NULL, color = NULL,label = labels)
+arrowhead = arrow(length = unit(0.02, "npc"))
+
+# Make a new graphic
+p <- cap_plot + geom_segment(mapping = arrow_map,size = 0.8,data = arrowdf,color = "black",arrow = arrowhead
+) + geom_text(mapping = label_map,size = 3,data = arrowdf,show.legend = FALSE) + theme_classic()
+==========================================================================================================================================
+# Calculate Unifrac distance matrix and PERMANOVA
+Bacalar_wunifrac <- phyloseq::distance(Bacalar, method = "unifrac", weighted=TRUE)
+# make a data frame from the sample_data
+sampledf <- data.frame(sample_data(Bacalar))
+# Adonis test
+adonis(Bacalar_wunifrac ~ DESCRIPTION, data = sampledf)
+
+> adonis(Bacalar_wunifrac ~ DESCRIPTION, data = sampledf)
+
+Call:
+adonis(formula = Bacalar_wunifrac ~ DESCRIPTION, data = sampledf) 
+
+Permutation: free
+Number of permutations: 999
+
+Terms added sequentially (first to last)
+
+            Df SumsOfSqs   MeanSqs F.Model      R2 Pr(>F)    
+DESCRIPTION  2  0.035264 0.0176321  6.6158 0.13201  0.001 ***
+Residuals   87  0.231866 0.0026651         0.86799           
+Total       89  0.267131                   1.00000           
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+====================================================================================================================================================
+#Alpha diversity_Microbiome of Bacalar lagoon and Mann-Whitney-Wilcoxon test
+Bacalar <- Bacalar %>%	
+  subset_taxa(
+    Kingdom != "Unassigned" &
+      Family  != "Mitochondria"&
+      Class   != "Chloroplast")
+> Bacalar
+
+rich = estimate_richness(Bacalar)
+rich
+Bacalar_Alpha = plot_richness (Bacalar, x= "DESCRIPTION",       
+                               shape = "DESCRIPTION",
+                               color = "DESCRIPTION",
+                               measures = c("Observed", "Chao1", "Shannon"))+ theme_classic2()
+P <- Bacalar_Alpha + geom_boxplot() 
+
+###To test if differs significantly between regions. We make a non-parametric test, the ##Wilcoxon rank-sum test (Mann-Whitney)
+
+pairwise.wilcox.test(rich$Observed, sample_data(Bacalar)$DESCRIPTION)
+
+> pairwise.wilcox.test(rich$Observed, sample_data(Bacalar)$DESCRIPTION)
+
+	Pairwise comparisons using Wilcoxon rank sum test 
+
+data:  rich$Observed and sample_data(Bacalar)$DESCRIPTION 
+
+             North-Center
+South-Center7.9e-15     
+
+P value adjustment method: holm 
+
+pairwise.wilcox.test(rich$Shannon, sample_data(Bacalar)$DESCRIPTION)
+
+> pairwise.wilcox.test(rich$Shannon, sample_data(Bacalar)$DESCRIPTION)
+
+	Pairwise comparisons using Wilcoxon rank sum test 
+
+data:  rich$Shannon and sample_data(Bacalar)$DESCRIPTION 
+
+             North-Center
+South-Center <2e-16      
+
+P value adjustment method: holm
+
+pairwise.wilcox.test(rich$Chao1, sample_data(Bacalar)$DESCRIPTION)
+
+> pairwise.wilcox.test(rich$Chao1, sample_data(Bacalar)$DESCRIPTION)
+
+	Pairwise comparisons using Wilcoxon rank sum test 
+
+data:  rich$Chao1 and sample_data(Bacalar)$DESCRIPTION 
+
+             North-Center
+South-Center <2e-16      
+
+P value adjustment method: holm
+=====================================================================================================================================
+#Beta Diversity
+#Archive ASV_BETA_Bacalar.txt
+class(ASV_BETA_Bacalar)
+> class(ASV_BETA_Bacalar)
+[1] "data.frame"
+
+DIV= as.matrix(ASV_BETA_Bacalar)
+DIV2 <- na.omit(DIV)
+# Transpose.
+DIVt = t(DIV2)
+DIVt
+# transforma Hellinger
+Divt.hel= decostand(DIVt, "hel")
+beta= beta.div(DIVt, method = "hellinger", sqrt.D = FALSE, samp = TRUE, nperm = 999, adj = TRUE, save.D = FALSE, clock = FALSE)
+res = beta.div(DIVt, "hellinger", nperm=999)
+plot(res$LCBD)
+plot(res$SCBD)
+
+#Results
+> beta[["beta"]]
+ 
+#Examples of contributions of individual species (SCBD) SCBD indices
+> beta[["SCBD"]][["ASV]]
+
+# contributions of single sites (LCBD) # LCBD indices
+> beta[["LCBD"]]
+
+# p-value, p≤ 0.05, is statistically significant
+> beta[["p.LCBD"]]
+
+#  Adjusted p-values for LCBD indices
+> beta[["p.adj"]]
