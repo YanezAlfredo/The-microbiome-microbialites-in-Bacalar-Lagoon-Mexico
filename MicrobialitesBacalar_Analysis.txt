@@ -1,46 +1,17 @@
 title: "The microbiome of modern microbialites in Bacalar Lagoon, Mexico"
 
 ==========================================================================================================================
-#Libraries
-#Define packages
-## CRAN repository
-cran_packages <- c("bookdown", "knitr", "tidyverse", "plyr", "grid", "gridExtra", "kableExtra", "xtable", "ggpubr")
-## Bioconductor repository
-bioc_packages <- c("phyloseq", "dada2", "DECIPHER", "phangorn", "ggpubr", "BiocManager", "DESeq2", "microbiome", "philr")
-## GitHub repository
-git_source <- c("twbattaglia/btools", "gmteunisse/Fantaxtic", "MadsAlbertsen/ampvis2", "opisthokonta/tsnemicrobiota")
-# source/package name
-git_packages <- c("btools", "fantaxtic", "ampvis2", "tsnemicrobiota") # package name
 
-
-======================================================
-# install the defined packages
-# Install CRAN packages
-.inst <- cran_packages %in% installed.packages()
-if(any(!.inst)) {
-  install.packages(cran_packages[!.inst])
-}
-# Install BioConductor packages
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-.inst <- bioc_packages %in% installed.packages()
-if(any(!.inst)) {
-  BiocManager::install(bioc_packages[!.inst])
-}
-# Install GitHub packages
-.inst <- git_source %in% installed.packages()
-if(any(!.inst)) {
-  devtools::install_github(git_source[!.inst])
-}
-========================================================
 #Cargar paquetes
-sapply(c(cran_packages, bioc_packages, git_packages), require, character.only = TRUE)
 
 #library(readxl)
 #library(ggplot2)
 #library(vegan)
-#library(adespatial)
-#library(adegraphics)
+#library(tidyverse)
+#library("readr")
+#library(phyloseq)
+#library(ggplot2)
+
 ===========================================================================================================================
 #Fig. 2 Spatial ordination (PCA) of environmental variables associated to microbialite sampling sites in Bacalar lagoon.
 
